@@ -1,45 +1,47 @@
-// const express = require('express');
-// const mongoose = require('mongoose');
-// require('dotenv').config();
-
-// const app = express();
-
-// // Middleware pour parser le JSON
-// app.use(express.json());
-
-// // Connexion à MongoDB
-// mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-//   .then(() => console.log('Connexion à MongoDB réussie !'))
-//   .catch(() => console.log('Connexion à MongoDB échouée !'));
-
-// // Exemple de route
-// app.get('/', (req, res) => {
-//   res.json({ message: 'Bienvenue sur Mon Vieux Grimoire API 📚' });
-// });
-
-// module.exports = app;
-
+// -------- COURS--------
 const express = require('express');
-
+const mongoose = require('mongoose');
+const Book = require('./models/book');
 const app = express();
 
+app.use(express.json());
+
+// Middleware 
 app.use((req, res, next) => {
-  console.log('Requête reçue !');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization'
+  );
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+  );
   next();
 });
 
-app.use((req, res, next) => {
-  res.status(201);
-  next();
+// Connexion à MongoDB Atlas
+mongoose.connect('mongodb+srv://tiffany:143ILY!@cluster0.cuaklfw.mongodb.net/')
+  .then(() => console.log('Connexion à MongoDB réussie !'))
+  .catch(() => console.log('Connexion à MongoDB échouée !'));
+
+// GET
+app.get('/api/books', (req, res, next) => {
+  Book.find()
+    .then(books => res.status(200).json(books))
+    .catch(error => res.status(400).json({ error }));
 });
 
-app.use((req, res, next) => {
-  res.json({ message: 'Votre requête a bien été reçue !' });
-  next();
-});
-
-app.use((req, res, next) => {
-  console.log('Réponse envoyée avec succès !');
+// POST
+app.post('/api/books', (req, res, next) => {
+  delete req.body._id;
+  const book = new Book({
+    ...req.body
+  });
+  book.save()
+    .then(() => res.status(201).json({ message: 'Livre enregistré !'}))
+    .catch(error => res.status(400).json({ error }));
 });
 
 module.exports = app;
+

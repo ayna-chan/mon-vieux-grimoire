@@ -43,7 +43,7 @@ exports.modifyBook = (req, res, next) => {
   Book.findOne({ _id: req.params.id })
     .then(book => {
       if (book.userId != req.auth.userId) {
-        return res.status(401).json({ message: 'Not authorized' });
+        return res.status(403).json({ message: 'Requête non autorisée' });
       }
       if (req.file && book.imageUrl) {
         const filename = book.imageUrl.split('/images/')[1];
@@ -61,7 +61,7 @@ exports.deleteBook = (req, res, next) => {
   Book.findOne({ _id: req.params.id })
     .then(book => {
       if (book.userId != req.auth.userId) {
-        res.status(401).json({ message: 'Not authorized' });
+        res.status(403).json({ message: 'Requête non autorisée' });
       } else {
         if (book.imageUrl) {
           const filename = book.imageUrl.split('/images/')[1];
@@ -78,4 +78,52 @@ exports.deleteBook = (req, res, next) => {
       }
     })
     .catch(error => res.status(500).json({ error }));
+};
+
+
+
+// Ajouter une note
+exports.addRating = (req, res, next) => {
+  const { userId, rating } = req.body;
+
+  // Vérification que l'userId du body correspond au token
+  if (userId !== req.auth.userId) {
+    return res.status(403).json({ message: 'Requête non autorisée' });
+  }
+
+  // Vérification de la note
+  if (rating < 0 || rating > 5) {
+    return res.status(400).json({ message: 'La note doit être entre 0 et 5' });
+  }
+
+  Book.findOne({ _id: req.params.id })
+    .then(book => {
+      if (!book) {
+        return res.status(404).json({ message: 'Livre non trouvé' });
+      }
+
+      // Un utilisateur ne peut pas noter plusieurs fois le même livre
+      const alreadyRated = book.ratings.find(r => r.userId === userId);
+      if (alreadyRated) {
+        return res.status(400).json({ message: 'Vous avez déjà noté ce livre' });
+      }
+
+      // Ajouter la nouvelle note
+      book.ratings.push({ userId, grade: rating });
+
+      // Recalculer la moyenne
+      const total = book.ratings.reduce((acc, r) => acc + r.grade, 0);
+      book.averageRating = total / book.ratings.length;
+
+      book.save()
+        .then(updatedBook => res.status(200).json(updatedBook))
+        .catch(error => res.status(400).json({ error }));
+    })
+    .catch(error => res.status(500).json({ error }));
+};
+
+exports.getBestRatedBooks = (req, res, next) => {
+  Book.find().sort({ averageRating: -1 }).limit(3)
+    .then(books => res.status(200).json(books))
+    .catch(error => res.status(400).json({ error }));
 };

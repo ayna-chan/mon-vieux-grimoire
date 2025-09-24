@@ -21,13 +21,23 @@ exports.createBook = (req, res, next) => {
   delete bookData._id;
   delete bookData._userId;
 
+  let ratings = [];
+  let averageRating = 0;
+  if (bookData.ratings && bookData.ratings.length > 0) {
+    ratings = bookData.ratings.map(r => ({
+      userId: r.userId || req.auth.userId,
+      grade: Number(r.grade)
+    }));
+    const total = ratings.reduce((acc, r) => acc + r.grade, 0);
+    averageRating = total / ratings.length;
+  }
+
   const book = new Book({
     ...bookData,
     userId: req.auth.userId,
     imageUrl: req.file ? `${req.protocol}://${req.get('host')}/images/${req.file.filename}` : '',
-    ratings: [],
-    averageRating: 0
-    // description supprimé
+    ratings,
+    averageRating
   });
 
   book.save()
@@ -137,4 +147,3 @@ exports.getBestRatedBooks = (req, res, next) => {
     .then(books => res.status(200).json(books))
     .catch(error => res.status(400).json({ error }));
 };
-

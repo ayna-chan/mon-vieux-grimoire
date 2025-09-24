@@ -1,13 +1,17 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
+
 const booksRoutes = require('./routes/books');
 const userRoutes = require('./routes/user');
+
 const app = express();
 
+// Analyse du JSON
 app.use(express.json());
 
-// Middleware
+// Middleware CORS
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader(
@@ -21,8 +25,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Servir les images de façon statique
+app.use('/images', express.static(path.join(__dirname, 'images')));
+
 // Connexion à MongoDB
-mongoose.connect('mongodb+srv://tiffany:143ILY!@cluster0.cuaklfw.mongodb.net/')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connexion à MongoDB réussie !'))
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
